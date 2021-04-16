@@ -1,3 +1,4 @@
+import os
 import logging
 import socket
 import signal
@@ -8,7 +9,7 @@ from pyhap.accessory_driver import AccessoryDriver
 
 logging.basicConfig(level=logging.INFO, format="[%(module)s] %(message)s")
 
-TARGET_IP = "10.0.13.50"
+TARGET_IP = os.getenv("AS_LAMP_TARGET_IP") or "127.0.0.1"
 TARGET_PORT = 1234
 
 
@@ -44,7 +45,7 @@ def get_bridge(driver):
     return bridge
 
 
-driver = AccessoryDriver(port=51826, persist_file="cube.state")
+driver = AccessoryDriver(port=51826, persist_file="~/cube.state")
 driver.add_accessory(accessory=get_bridge(driver))
 signal.signal(signal.SIGTERM, driver.signal_handler)
 driver.start()
