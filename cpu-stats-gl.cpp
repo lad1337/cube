@@ -23,10 +23,10 @@
 // params
 #define LOAD_MIN 1.0
 #define LOAD_MAX 10.0
-#define DOWNLOAD_MIN 0.0       // in kilobits/s
-#define DOWNLOAD_MAX 102400.0  // in kilobits/s
-#define UPLOAD_MIN 0.0         // in kilobits/s
-#define UPLOAD_MAX 30720.0     // in kilobits/s
+#define DOWNLOAD_MIN 0.0         // in bytes/s
+#define DOWNLOAD_MAX 13107200.0  // in bytes/s
+#define UPLOAD_MIN 0.0           // in bytes/s
+#define UPLOAD_MAX 3932160.0     // in bytes/s
 
 // UDP port to listen for status updates
 #define PORT 1234
@@ -329,9 +329,9 @@ int main(int argc, char *argv[]) {
             else if (option == "-d")
                 debug = true;
             else if (option == "--fragment") {
-                fragmentPath = std::string(argv[i++]);
+                fragmentPath = std::string(argv[i + 1]);
             } else if (option == "--vertex") {
-                vertexPath = std::string(argv[i++]);
+                vertexPath = std::string(argv[i + 1]);
             }
         }
     }
@@ -515,6 +515,7 @@ int main(int argc, char *argv[]) {
                 lastTime += 1;
             }
         }
+        // skip if we are off
         if (!on) {
             usleep(1000);
             continue;
