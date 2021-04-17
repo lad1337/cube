@@ -469,6 +469,7 @@ int main(int argc, char *argv[]) {
     // LED Matrix settings
     RGBMatrix::Options defaults;
     rgb_matrix::RuntimeOptions runtime;
+    runtime.daemon = -1;
     defaults.hardware_mapping = "adafruit-hat-pwm";
     defaults.led_rgb_sequence = "RGB";
     defaults.pwm_bits = 11;
@@ -478,7 +479,8 @@ int main(int argc, char *argv[]) {
     defaults.cols = 192;
     defaults.chain_length = 1;
     defaults.parallel = 1;
-    //  defaults.brightness = 60;
+    // defaults.show_refresh_rate = true;
+    // defaults.brightness = 60;
 
     runtime.drop_privileges = 0;
     runtime.gpio_slowdown = 1;
@@ -496,6 +498,8 @@ int main(int argc, char *argv[]) {
     int lastTime = (int)std::time(NULL);
     int nbFrames = 0;
 
+    matrix->StartRefresh();
+    bool last_frame_on = true;
     while (!interrupt_received) {
         t += 0.01f;
 
@@ -517,9 +521,21 @@ int main(int argc, char *argv[]) {
         }
         // skip if we are off
         if (!on) {
+            if (last_frame_on) {
+                printf("Killing matrix and creating a new one");
+                canvas->Clear();
+                delete matrix;
+                matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults, &runtime);
+                if (matrix == NULL) return EXIT_FAILURE;
+                canvas = matrix->CreateFrameCanvas();
+            }
+            last_frame_on = false;
             usleep(1000);
             continue;
         }
+
+        if (!last_frame_on) matrix->StartRefresh();
+        last_frame_on = true;
 
         // Grab the interval since last update
         int quiet = int(t - updateTime);
