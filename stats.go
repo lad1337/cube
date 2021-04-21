@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -25,6 +26,7 @@ func getEnv(key, fallback string) string {
 var IP = getEnv("STATS_TRAGET_IP", "127.0.0.1")
 var PORT = 1234
 var INTERFACE = getEnv("STATS_SOURCE_INTERFACE", "bond0")
+var INTERVAL = getEnv("STATS_REPORT_INTERVAL", "1")
 
 type Stat struct {
 	load float64
@@ -92,13 +94,19 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
+	interval, err := strconv.Atoi(INTERVAL)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	ip, _, err := net.ParseCIDR(IP + "/24")
 	if err != nil {
 		fmt.Println("Error", IP, err)
 		return
 	}
 	target := net.UDPAddr{IP: ip, Port: PORT, Zone: ""}
-	fmt.Printf("Sending stats from %s to %s\n", INTERFACE, &target)
+	fmt.Printf("Sending stats from %s to %s every %ds\n", INTERFACE, &target, interval)
+	interval_ := time.Duration(interval - 1)
 mainLoop:
 	for {
 		select {
@@ -109,6 +117,7 @@ mainLoop:
 		default:
 			stat := getStats(ctx)
 			sendStats(stat, &target)
+			time.Sleep(interval_ * time.Second)
 		}
 	}
 

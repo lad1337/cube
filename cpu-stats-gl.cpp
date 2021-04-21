@@ -13,6 +13,9 @@
 #include <atomic>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
 #include <thread>
 
 #include "led-matrix.h"
@@ -21,18 +24,19 @@
 #define BLANKINTERVAL 0
 
 // params
-#define LOAD_MIN 1.0
-#define LOAD_MAX 10.0
-#define DOWNLOAD_MIN 0.0         // in bytes/s
-#define DOWNLOAD_MAX 13107200.0  // in bytes/s
-#define UPLOAD_MIN 0.0           // in bytes/s
-#define UPLOAD_MAX 3932160.0     // in bytes/s
+#define LOAD_MIN 0
+#define LOAD_MAX 8
+#define DOWNLOAD_MIN 0        // in bytes/s
+#define DOWNLOAD_MAX 8000000  // in bytes/s
+//#define DOWNLOAD_MAX 12832507
+#define UPLOAD_MIN 0        // in bytes/s
+#define UPLOAD_MAX 3750000  // in bytes/s
 
 // UDP port to listen for status updates
 #define PORT 1234
 
 // Animation speed
-#define ANIMSTEP 0.5
+#define ANIMSTEP 0.001f
 
 // Resolution, three panels with 64x64 each.
 #define W 192
@@ -50,7 +54,8 @@ float upload = normalize(UPLOAD_MIN, UPLOAD_MIN, UPLOAD_MAX);
 bool on = true;  // homekit integration
 
 float normalize(float lower, float x, float higher) { return (x - lower) / (higher - lower); }
-float step(float lower, float higher) { return (higher - lower) / 20.0f; }
+float normalize(int lower, float x, int higher) { return (x - float(lower)) / float(higher - lower); }
+float normalize(int lower, int x, int higher) { return float(x - lower) / float(higher - lower); }
 
 using rgb_matrix::Canvas;
 using rgb_matrix::RGBMatrix;
@@ -263,20 +268,21 @@ void receiveUDP() {
             int i = 0;
             int j = 0;
             while (i < nIn) {
-                float entry = atof(buf + i);
+                float entryf = atof(buf + i);
+                int entryi = atoi(buf + i);
                 // std::cout << "e: " << entry << " @ " << j << std::endl;
-                if (entry >= 0) switch (j) {
+                if (entryi >= 0) switch (j) {
                         case 0:
-                            load = normalize(LOAD_MIN, entry, LOAD_MAX);
+                            load = normalize(LOAD_MIN, entryf, LOAD_MAX);
                             break;
                         case 1:
-                            download = normalize(DOWNLOAD_MIN, entry, DOWNLOAD_MAX);
+                            download = normalize(DOWNLOAD_MIN, entryi, DOWNLOAD_MAX);
                             break;
                         case 2:
-                            upload = normalize(UPLOAD_MIN, entry, UPLOAD_MAX);
+                            upload = normalize(UPLOAD_MIN, entryi, UPLOAD_MAX);
                             break;
                         case 3:
-                            on = entry == 1.0f;
+                            on = entryi == 1;
                             break;
                         default:
                             break;
@@ -312,9 +318,10 @@ void pixel(int r, int g, int b) {
 
 int main(int argc, char *argv[]) {
     std::string vertexPath = "vertex.original.glsl";
-    std::string fragmentPath = "fragment.theroutamod.glsl";
+    std::string fragmentPath = "fragment.template.glsl";
+    std::string renderFunctionPath = "";
     EGLDisplay display;
-    bool debug = false;
+    unsigned int debug = 0;
     bool print = false;
     int major, minor;
     int desiredWidth, desiredHeight;
@@ -326,12 +333,14 @@ int main(int argc, char *argv[]) {
             std::string option = std::string(argv[i]);
             if (option == "-p")
                 print = true;
-            else if (option == "-d")
-                debug = true;
+            else if (option.rfind("-v", 0) == 0)
+                debug = option.length() - 1;
             else if (option == "--fragment") {
                 fragmentPath = std::string(argv[i + 1]);
             } else if (option == "--vertex") {
                 vertexPath = std::string(argv[i + 1]);
+            } else if (option == "--render") {
+                renderFunctionPath = std::string(argv[i + 1]);
             }
         }
     }
@@ -398,6 +407,15 @@ int main(int argc, char *argv[]) {
     // Shader program
     std::string vertexCode = SHADER_HEADER + loadFile(vertexPath);
     std::string fragmentCode = SHADER_HEADER + loadFile(fragmentPath);
+    if (renderFunctionPath.length() > 0) {
+        std::string functionBody = loadFile(renderFunctionPath);
+        std::size_t found = fragmentCode.find("// HERE");
+        if (found == std::string::npos) {
+            std::cout << "not found" << std::endl;
+            return EXIT_FAILURE;
+        }
+        fragmentCode = fragmentCode.insert(found, functionBody);
+    }
     static const char *cVertexCode = vertexCode.c_str();
     static const char *cFragmentCode = fragmentCode.c_str();
 
@@ -425,6 +443,7 @@ int main(int argc, char *argv[]) {
         glGetProgramInfoLog(program, 512, NULL, infoLog);
         std::cout << infoLog << std::endl;
         glDeleteProgram(program);
+        std::cout << fragmentCode << std::endl;
         return EXIT_FAILURE;
     }
     glUseProgram(program);
@@ -447,14 +466,18 @@ int main(int argc, char *argv[]) {
     time_id = glGetUniformLocation(program, "time");
     age_id = glGetUniformLocation(program, "age");
 
-    if (debug) {
-        std::cout << "Location of position: " << pos_id << std::endl;
-        std::cout << "Location of fragecoord: " << fragcoord_id << std::endl;
-        std::cout << "Location of load: " << load_id << std::endl;
-        std::cout << "Location of upload: " << upload_id << std::endl;
-        std::cout << "Location of download: " << download_id << std::endl;
-        std::cout << "Location of time: " << time_id << std::endl;
-        std::cout << "Location of age: " << age_id << std::endl;
+    if (debug >= 1) {
+        printf("Location of position: %d\n", pos_id);
+        printf("Location of fragecoord: %d\n", fragcoord_id);
+        printf("Location of load: %d\n", load_id);
+        printf("Location of upload: %d\n", upload_id);
+        printf("Location of download: %d\n", download_id);
+        printf("Location of time: %d\n", time_id);
+        printf("Location of age: %d\n", age_id);
+
+        printf("load: %d | %f | %d\n", LOAD_MIN, load, LOAD_MAX);
+        printf("down: %d | %f | %d\n", DOWNLOAD_MIN, download, DOWNLOAD_MAX);
+        printf("up:   %d | %f | %d\n", UPLOAD_MIN, upload, UPLOAD_MAX);
     }
 
     // Set our vertex data
@@ -471,15 +494,18 @@ int main(int argc, char *argv[]) {
     rgb_matrix::RuntimeOptions runtime;
     runtime.daemon = -1;
     defaults.hardware_mapping = "adafruit-hat-pwm";
-    defaults.led_rgb_sequence = "RGB";
+    defaults.led_rgb_sequence = "BGR";
     defaults.pwm_bits = 11;
-    defaults.pwm_lsb_nanoseconds = 50;
+    defaults.pwm_lsb_nanoseconds = 182;
     defaults.panel_type = "FM6126A";
     defaults.rows = 64;
     defaults.cols = 192;
     defaults.chain_length = 1;
+    defaults.limit_refresh_rate_hz = 60;
     defaults.parallel = 1;
-    // defaults.show_refresh_rate = true;
+    if (debug >= 3) {
+        defaults.show_refresh_rate = true;
+    }
     // defaults.brightness = 60;
 
     runtime.drop_privileges = 0;
@@ -500,6 +526,11 @@ int main(int argc, char *argv[]) {
 
     matrix->StartRefresh();
     bool last_frame_on = true;
+
+    float effective_load = 0.0f;
+    float effective_download = 0.0f;
+    float effective_upload = 0.0f;
+    printf("Rendering!\n");
     while (!interrupt_received) {
         t += 0.01f;
 
@@ -508,13 +539,28 @@ int main(int argc, char *argv[]) {
             sleep(1);
         }
 
+        if (load > effective_load)
+            effective_load += ANIMSTEP;
+        else if (load < effective_load)
+            effective_load -= ANIMSTEP;
+        if (download > effective_download)
+            effective_download += ANIMSTEP;
+        else if (download < effective_download)
+            effective_download -= ANIMSTEP;
+        if (upload > effective_upload)
+            effective_upload += ANIMSTEP;
+        else if (download < effective_upload)
+            effective_upload -= ANIMSTEP;
+
         float age = float(t - updateTime);
-        if (debug) {
+        if (debug >= 2) {
             int currentTime = (int)std::time(NULL);
             nbFrames++;
             if ((currentTime - lastTime) >= 1.0) {  // If last prinf() was more than 1 sec ago
-                printf("%f ms/frame -> %i/s | time: %f | age: %f | load: %f | down: %f | up: %f | on: %i\n",
-                       1000.0 / float(nbFrames), nbFrames, t, age, load, download, upload, on);
+                printf(
+                    "%f ms/frame -> %i/s | time: %4.3f | age: %4.3f | load: %4.3f | down: %4.3f | up: %4.3f | on: %d\n",
+                    1000.0 / float(nbFrames), nbFrames, t, age, effective_load, effective_download, effective_upload,
+                    on);
                 nbFrames = 0;
                 lastTime += 1;
             }
@@ -522,7 +568,7 @@ int main(int argc, char *argv[]) {
         // skip if we are off
         if (!on) {
             if (last_frame_on) {
-                printf("Killing matrix and creating a new one");
+                printf("Killing matrix and creating a new one\n");
                 canvas->Clear();
                 delete matrix;
                 matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults, &runtime);
@@ -547,9 +593,9 @@ int main(int argc, char *argv[]) {
         } else {
             glUniform1f(time_id, t);
             glUniform1f(age_id, age);
-            glUniform1f(load_id, load);
-            glUniform1f(download_id, download);
-            glUniform1f(upload_id, upload);
+            glUniform1f(load_id, effective_load);
+            glUniform1f(download_id, effective_download);
+            glUniform1f(upload_id, effective_upload);
 
             // ACTION
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 12);

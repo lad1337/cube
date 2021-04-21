@@ -1,7 +1,6 @@
 //#version 330 core
 // mod of https://there.oughta.be/an/led-cube shader
 // environment: 0 = sandbox, 1 = desktop, 2 = raspberry pi
-//#define FORCE_SANDBOX
 #ifndef environment
 precision mediump float;
 //#define simulation // activate to change load etc automatically
