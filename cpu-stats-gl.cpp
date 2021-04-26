@@ -28,9 +28,8 @@
 #define LOAD_MAX 8
 #define DOWNLOAD_MIN 0        // in bytes/s
 #define DOWNLOAD_MAX 8000000  // in bytes/s
-//#define DOWNLOAD_MAX 12832507
-#define UPLOAD_MIN 0        // in bytes/s
-#define UPLOAD_MAX 3750000  // in bytes/s
+#define UPLOAD_MIN 0          // in bytes/s
+#define UPLOAD_MAX 3500000    // in bytes/s
 
 // UDP port to listen for status updates
 #define PORT 1234
@@ -52,6 +51,7 @@ float load = normalize(LOAD_MIN, LOAD_MIN, LOAD_MAX);
 float download = normalize(DOWNLOAD_MIN, DOWNLOAD_MIN, DOWNLOAD_MAX);
 float upload = normalize(UPLOAD_MIN, UPLOAD_MIN, UPLOAD_MAX);
 bool on = true;  // homekit integration
+unsigned int brightness = 100;
 
 float normalize(float lower, float x, float higher) { return (x - lower) / (higher - lower); }
 float normalize(int lower, float x, int higher) { return (x - float(lower)) / float(higher - lower); }
@@ -221,7 +221,7 @@ std::string asString(const std::chrono::system_clock::time_point &tp) {
     return ts;
 }
 
-#define BUFLEN 512
+#define BUFLEN 128
 void receiveUDP() {
     struct sockaddr_in si_me, si_other;
     int s, i, slen = sizeof(si_other);
@@ -284,6 +284,9 @@ void receiveUDP() {
                         case 3:
                             on = entryi == 1;
                             break;
+                        case 4:
+                            brightness = entryi;
+                            break;
                         default:
                             break;
                     }
@@ -319,7 +322,7 @@ void pixel(int r, int g, int b) {
 int main(int argc, char *argv[]) {
     std::string vertexPath = "vertex.original.glsl";
     std::string fragmentPath = "fragment.template.glsl";
-    std::string renderFunctionPath = "";
+    std::string renderFunctionPath = "render.neo.glsl";
     EGLDisplay display;
     unsigned int debug = 0;
     bool print = false;
@@ -496,7 +499,7 @@ int main(int argc, char *argv[]) {
     defaults.hardware_mapping = "adafruit-hat-pwm";
     defaults.led_rgb_sequence = "BGR";
     defaults.pwm_bits = 11;
-    defaults.pwm_lsb_nanoseconds = 182;
+    defaults.pwm_lsb_nanoseconds = 226;
     defaults.panel_type = "FM6126A";
     defaults.rows = 64;
     defaults.cols = 192;
@@ -591,6 +594,7 @@ int main(int argc, char *argv[]) {
             canvas = matrix->SwapOnVSync(canvas);
             sleep(5);
         } else {
+            matrix->SetBrightness(brightness);
             glUniform1f(time_id, t);
             glUniform1f(age_id, age);
             glUniform1f(load_id, effective_load);

@@ -26,17 +26,24 @@ class Light(Accessory):
         self.char_brightness = serv_light.configure_char(
             "Brightness", setter_callback=self.set_brightness
         )
+        self.brightness = 100
+        self.on = 1
 
     def set_bulb(self, value):
         logging.info("Bulb on value: %s", value)
-
-        out = ",".join(map(str, [0, 0, 0, value]))
-        socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(
-            out.encode("utf-8"), (TARGET_IP, TARGET_PORT)
-        )
+        self.on = value
+        self.notify()
 
     def set_brightness(self, value):
         logging.info("Bulb brightness value: %s", value)
+        self.brightness = value
+        self.notify()
+
+    def notify(self):
+        out = ",".join(map(str, [-1, -1, -1, self.on, self.brightness]))
+        socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(
+            out.encode("utf-8"), (TARGET_IP, TARGET_PORT)
+        )
 
 
 def get_bridge(driver):

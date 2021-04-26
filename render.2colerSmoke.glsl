@@ -1,4 +1,4 @@
-
+// http://glslsandbox.com/e#72118.0
 float random(in vec2 point) {
     return fract(100.0 * sin(point.x + fract(100.0 * sin(point.y))));  // http://www.matteo-basei.it/noise
 }
@@ -17,7 +17,7 @@ float noise(in vec2 st) {
     return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
-#define octaves 5
+#define octaves 6
 
 float fbm(in vec2 p) {
     float value = 0.;
@@ -26,8 +26,8 @@ float fbm(in vec2 p) {
 
     for (int i = 0; i < octaves; i++) {
         value += amp * (noise((p - vec2(1.)) * freq));
-        freq *= 1.9;
-        amp *= .6;
+        freq *= 2.0;
+        amp *= .50;
     }
 
     return value;
@@ -50,13 +50,21 @@ float pattern(in vec2 p) {
 
     return c;
 }
-
+#define COLOR_PALETTE 2
 vec3 palette(in float t) {
-    vec3 a = vec3(.5 * (1. - load), .5 * (1. - download), .5 * (1. - upload));
+#if COLOR_PALETTE == 1
+    // pink green
+    vec3 a = vec3(.5 * (1. - load), .5 * (1. - upload), .5 * (1. - download));
     vec3 b = vec3(.5, .5, .5);
-
     vec3 c = vec3(1., 1., 1.);
     vec3 d = vec3(0., .2, 0);
+#elif COLOR_PALETTE == 2
+    // blue green
+    vec3 a = vec3(.3 + load, .2 + (0.5 * upload), 0.8 - (0.5 * download));
+    vec3 b = vec3(.8, .7, .7);
+    vec3 c = vec3(1., 1., 1.);
+    vec3 d = vec3(.1, .0, .3);
+#endif
 
     return a + b * cos(6.28318 * (c * t + d));
 }
