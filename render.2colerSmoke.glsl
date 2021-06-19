@@ -26,7 +26,7 @@ float fbm(in vec2 p) {
 
     for (int i = 0; i < octaves; i++) {
         value += amp * (noise((p - vec2(1.)) * freq));
-        freq *= 2.0;
+        freq *= 2.3;
         amp *= .50;
     }
 

@@ -2,6 +2,7 @@
 #include <GLES2/gl2.h>
 #include <math.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -504,7 +505,7 @@ int main(int argc, char *argv[]) {
     defaults.rows = 64;
     defaults.cols = 192;
     defaults.chain_length = 1;
-    defaults.limit_refresh_rate_hz = 60;
+    // defaults.limit_refresh_rate_hz = 60;
     defaults.parallel = 1;
     if (debug >= 3) {
         defaults.show_refresh_rate = true;
