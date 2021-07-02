@@ -24,14 +24,6 @@
 // Define interval for auto blanking - set to zero to disable
 #define BLANKINTERVAL 0
 
-// params
-#define LOAD_MIN 0
-#define LOAD_MAX 8
-#define DOWNLOAD_MIN 0        // in bytes/s
-#define DOWNLOAD_MAX 8000000  // in bytes/s
-#define UPLOAD_MIN 0          // in bytes/s
-#define UPLOAD_MAX 3500000    // in bytes/s
-
 // UDP port to listen for status updates
 #define PORT 1234
 
@@ -48,15 +40,13 @@ float normalize(float lower, float x, float higher);
 // settings
 float p_factor = 0.5f;
 // lowest, current, max
-float load = normalize(LOAD_MIN, LOAD_MIN, LOAD_MAX);
-float download = normalize(DOWNLOAD_MIN, DOWNLOAD_MIN, DOWNLOAD_MAX);
-float upload = normalize(UPLOAD_MIN, UPLOAD_MIN, UPLOAD_MAX);
+float dimension1 = 0.0f;
+float dimension2 = 0.0f;
+float dimension3 = 0.0f;
 bool on = true;  // homekit integration
 unsigned int brightness = 100;
-
-float normalize(float lower, float x, float higher) { return (x - lower) / (higher - lower); }
-float normalize(int lower, float x, int higher) { return (x - float(lower)) / float(higher - lower); }
-float normalize(int lower, int x, int higher) { return float(x - lower) / float(higher - lower); }
+int debug = 0;
+bool debug_network = false;
 
 using rgb_matrix::Canvas;
 using rgb_matrix::RGBMatrix;
@@ -274,13 +264,13 @@ void receiveUDP() {
                 // std::cout << "e: " << entry << " @ " << j << std::endl;
                 if (entryi >= 0) switch (j) {
                         case 0:
-                            load = normalize(LOAD_MIN, entryf, LOAD_MAX);
+                            dimension1 = entryf;
                             break;
                         case 1:
-                            download = normalize(DOWNLOAD_MIN, entryi, DOWNLOAD_MAX);
+                            dimension2 = entryf;
                             break;
                         case 2:
-                            upload = normalize(UPLOAD_MIN, entryi, UPLOAD_MAX);
+                            dimension3 = entryf;
                             break;
                         case 3:
                             on = entryi == 1;
@@ -294,6 +284,9 @@ void receiveUDP() {
                 j++;
                 while (buf[i] != ',' && i < nIn) i++;
                 i++;
+            }
+            if (debug >= 2 && debug_network) {
+                printf("dim1: %4.3f | dim2: %4.3f | dim3: %4.3f\n", dimension1, dimension2, dimension3);
             }
         }
 
@@ -325,12 +318,11 @@ int main(int argc, char *argv[]) {
     std::string fragmentPath = "fragment.template.glsl";
     std::string renderFunctionPath = "render.neo.glsl";
     EGLDisplay display;
-    unsigned int debug = 0;
     bool print = false;
     int major, minor;
     int desiredWidth, desiredHeight;
     GLuint program, vert, frag, vbo, vbocoord;
-    int pos_id, fragcoord_id, load_id, upload_id, download_id, age_id, time_id;
+    int pos_id, fragcoord_id, dimension1_loc, dimension2_loc, dimension3_loc, age_id, time_id;
 
     if (argc >= 2) {
         for (int i = 1; i < argc; i++) {
@@ -345,6 +337,8 @@ int main(int argc, char *argv[]) {
                 vertexPath = std::string(argv[i + 1]);
             } else if (option == "--render") {
                 renderFunctionPath = std::string(argv[i + 1]);
+            } else if (option == "--debug-network") {
+                debug_network = true;
             }
         }
     }
@@ -464,24 +458,24 @@ int main(int argc, char *argv[]) {
     pos_id = glGetAttribLocation(program, "aPos");
     fragcoord_id = glGetAttribLocation(program, "coord");
 
-    load_id = glGetUniformLocation(program, "load");
-    upload_id = glGetUniformLocation(program, "upload");
-    download_id = glGetUniformLocation(program, "download");
+    dimension1_loc = glGetUniformLocation(program, "load");
+    dimension2_loc = glGetUniformLocation(program, "upload");
+    dimension3_loc = glGetUniformLocation(program, "download");
     time_id = glGetUniformLocation(program, "time");
     age_id = glGetUniformLocation(program, "age");
 
     if (debug >= 1) {
         printf("Location of position: %d\n", pos_id);
         printf("Location of fragecoord: %d\n", fragcoord_id);
-        printf("Location of load: %d\n", load_id);
-        printf("Location of upload: %d\n", upload_id);
-        printf("Location of download: %d\n", download_id);
+        printf("Location of load: %d\n", dimension1_loc);
+        printf("Location of upload: %d\n", dimension2_loc);
+        printf("Location of download: %d\n", dimension3_loc);
         printf("Location of time: %d\n", time_id);
         printf("Location of age: %d\n", age_id);
 
-        printf("load: %d | %f | %d\n", LOAD_MIN, load, LOAD_MAX);
-        printf("down: %d | %f | %d\n", DOWNLOAD_MIN, download, DOWNLOAD_MAX);
-        printf("up:   %d | %f | %d\n", UPLOAD_MIN, upload, UPLOAD_MAX);
+        // printf("load: %d | %f | %d\n", LOAD_MIN, dimension1, LOAD_MAX);
+        // printf("down: %d | %f | %d\n", DOWNLOAD_MIN, dimension2, DOWNLOAD_MAX);
+        // printf("up:   %d | %f | %d\n", UPLOAD_MIN, dimension3, UPLOAD_MAX);
     }
 
     // Set our vertex data
@@ -497,17 +491,18 @@ int main(int argc, char *argv[]) {
     RGBMatrix::Options defaults;
     rgb_matrix::RuntimeOptions runtime;
     runtime.daemon = -1;
+    defaults.limit_refresh_rate_hz = 120;
+    defaults.pwm_bits = 11;
+    // defaults.pwm_lsb_nanoseconds = 226; // old default, for raspberry
+    defaults.pwm_lsb_nanoseconds = 70;  // no flicker, higher refresh, on dietpi
     defaults.hardware_mapping = "adafruit-hat-pwm";
     defaults.led_rgb_sequence = "BGR";
-    defaults.pwm_bits = 11;
-    defaults.pwm_lsb_nanoseconds = 226;
     defaults.panel_type = "FM6126A";
     defaults.rows = 64;
     defaults.cols = 192;
     defaults.chain_length = 1;
-    // defaults.limit_refresh_rate_hz = 60;
     defaults.parallel = 1;
-    if (debug >= 3) {
+    if (debug == 2) {
         defaults.show_refresh_rate = true;
     }
     // defaults.brightness = 60;
@@ -531,9 +526,9 @@ int main(int argc, char *argv[]) {
     matrix->StartRefresh();
     bool last_frame_on = true;
 
-    float effective_load = 0.0f;
-    float effective_download = 0.0f;
-    float effective_upload = 0.0f;
+    float effective_dimension1 = 0.0f;
+    float effective_dimension2 = 0.0f;
+    float effective_dimension3 = 0.0f;
     printf("Rendering!\n");
     while (!interrupt_received) {
         t += 0.01f;
@@ -543,28 +538,31 @@ int main(int argc, char *argv[]) {
             sleep(1);
         }
 
-        if (load > effective_load)
-            effective_load += ANIMSTEP;
-        else if (load < effective_load)
-            effective_load -= ANIMSTEP;
-        if (download > effective_download)
-            effective_download += ANIMSTEP;
-        else if (download < effective_download)
-            effective_download -= ANIMSTEP;
-        if (upload > effective_upload)
-            effective_upload += ANIMSTEP;
-        else if (download < effective_upload)
-            effective_upload -= ANIMSTEP;
+        if (dimension1 > effective_dimension1)
+            effective_dimension1 += ANIMSTEP;
+        else if (dimension1 < effective_dimension1)
+            effective_dimension1 -= ANIMSTEP;
+
+        if (dimension2 > effective_dimension2)
+            effective_dimension2 += ANIMSTEP;
+        else if (dimension2 < effective_dimension2)
+            effective_dimension2 -= ANIMSTEP;
+
+        if (dimension3 > effective_dimension3)
+            effective_dimension3 += ANIMSTEP;
+        else if (dimension3 < effective_dimension3)
+            effective_dimension3 -= ANIMSTEP;
 
         float age = float(t - updateTime);
-        if (debug >= 2) {
+        if (debug >= 3) {
             int currentTime = (int)std::time(NULL);
             nbFrames++;
             if ((currentTime - lastTime) >= 1.0) {  // If last prinf() was more than 1 sec ago
                 printf(
-                    "%f ms/frame -> %i/s | time: %4.3f | age: %4.3f | load: %4.3f | down: %4.3f | up: %4.3f | on: %d\n",
-                    1000.0 / float(nbFrames), nbFrames, t, age, effective_load, effective_download, effective_upload,
-                    on);
+                    "%f ms/frame -> %i/s | time: %4.3f | age: %4.3f | dim1: %4.3f | dim2: %4.3f | dim3: %4.3f | on: "
+                    "%d\n",
+                    1000.0 / float(nbFrames), nbFrames, t, age, effective_dimension1, effective_dimension2,
+                    effective_dimension3, on);
                 nbFrames = 0;
                 lastTime += 1;
             }
@@ -598,9 +596,9 @@ int main(int argc, char *argv[]) {
             matrix->SetBrightness(brightness);
             glUniform1f(time_id, t);
             glUniform1f(age_id, age);
-            glUniform1f(load_id, effective_load);
-            glUniform1f(download_id, effective_download);
-            glUniform1f(upload_id, effective_upload);
+            glUniform1f(dimension1_loc, effective_dimension1);
+            glUniform1f(dimension3_loc, effective_dimension2);
+            glUniform1f(dimension2_loc, effective_dimension3);
 
             // ACTION
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 12);

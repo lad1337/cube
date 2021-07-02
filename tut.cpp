@@ -21,9 +21,9 @@ const float RESOLUTION[2] = {float(SCR_WIDTH), float(SCR_HEIGHT)};
 
 float p_factor = 0.5f;
 // lowest, current, max
-float load[3] = {1.0f, 3.0f, 8.0f};
-float download[3] = {0.0f, 80.0f, 5000.0f};
-float upload[3] = {0.0f, 80.0f, 500.0f};
+float dimension1[3] = {1.0f, 3.0f, 8.0f};
+float dimension2[3] = {0.0f, 80.0f, 5000.0f};
+float dimension3[3] = {0.0f, 80.0f, 500.0f};
 
 std::string loadFile(std::string path) {
     std::cout << "loading file: " + path << std::endl;
@@ -35,9 +35,9 @@ std::string loadFile(std::string path) {
 
 float normalize(float lower, float x, float higher) { return (x - lower) / (higher - lower); }
 float step(float lower, float higher) { return (higher - lower) / 20.0f; }
-float normalized_load() { return normalize(load[0], load[1], load[2]); }
-float normalized_download() { return normalize(download[0], download[1], download[2]); }
-float normalized_upload() { return normalize(upload[0], upload[1], upload[2]); }
+float normalized_load() { return normalize(dimension1[0], dimension1[1], dimension1[2]); }
+float normalized_download() { return normalize(dimension2[0], dimension2[1], dimension2[2]); }
+float normalized_upload() { return normalize(dimension3[0], dimension3[1], dimension3[2]); }
 
 static const std::string SHADER_HEADER = "#version 330 core\n#define environment 1\n";
 
@@ -317,12 +317,12 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     }
     if (key == GLFW_KEY_H) {
         // lower load
-        load[1] -= step(load[0], load[2]);
+        dimension1[1] -= step(dimension1[0], dimension1[2]);
     }
     if (key == GLFW_KEY_L) {
         // higher load
-        load[1] += step(load[0], load[2]);
+        dimension1[1] += step(dimension1[0], dimension1[2]);
     }
-    std::cout << "p_factor: " << p_factor << " load: " << load[1] << "(" << normalized_load() << ")" << std::endl;
+    std::cout << "p_factor: " << p_factor << " load: " << dimension1[1] << "(" << normalized_load() << ")" << std::endl;
 }
 
