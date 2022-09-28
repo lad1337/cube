@@ -286,7 +286,8 @@ void receiveUDP() {
                 i++;
             }
             if (debug >= 2 && debug_network) {
-                printf("dim1: %4.3f | dim2: %4.3f | dim3: %4.3f\n", dimension1, dimension2, dimension3);
+                printf("dim1: %4.3f | dim2: %4.3f | dim3: %4.3f | on: %i | brightness: %i\n", dimension1, dimension2,
+                       dimension3, on, brightness);
             }
         }
 
@@ -316,7 +317,7 @@ void pixel(int r, int g, int b) {
 int main(int argc, char *argv[]) {
     std::string vertexPath = "vertex.original.glsl";
     std::string fragmentPath = "fragment.template.glsl";
-    std::string renderFunctionPath = "render.neo.glsl";
+    std::string renderFunctionPath = "render.smoke2.glsl";
     EGLDisplay display;
     bool print = false;
     int major, minor;
