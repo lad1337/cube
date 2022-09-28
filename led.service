@@ -1,0 +1,14 @@
+[Unit]
+Description=the matrix led thing
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cpu-stats-gl -v
+User=root
+WorkingDirectory=/etc/cube
+Restart=always
+RuntimeMaxSec=9h
+
+[Install]
+WantedBy=multi-user.target

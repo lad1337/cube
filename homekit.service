@@ -1,0 +1,13 @@
+[Unit]
+Description=homekit integration to the cube
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/as-light.py
+User=root
+WorkingDirectory=/etc/cube
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
