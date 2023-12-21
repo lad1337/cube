@@ -4,8 +4,7 @@ tut: tut.cpp fragment.original.glsl vertex.original.glsl
 	clang++ -std=c++11 -stdlib=libc++ -lglfw -framework CoreVideo -framework OpenGL -framework IOKit -framework Cocoa -framework Carbon -o tut tut.cpp
 
 copy:
-	scp fragment.template.glsl cube:
-	scp render.*.glsl cube:
+	scp -r shader/ cube:
 
 deploy: copy
 	scp cpu-stats-gl.cpp cube:

@@ -1,26 +1,17 @@
+// environment: 0 = sandbox, 1 = desktop, 2 = raspberry pi
+
 //#version 330 core
 // mod of https://there.oughta.be/an/led-cube shader
-// environment: 0 = sandbox, 1 = desktop, 2 = raspberry pi
 #ifndef environment
-precision mediump float;
-//#define simulation // activate to change load etc automatically
 #define environment 0
 #endif
 
-// code with errors to check the preprocessor
-/*
-#if environment == 2
-raspi;
-#elif environment == 1
-mac;
-#elif environment == 0
-sandbox;
-#else
-wtf;
+#if environment == 0
+precision mediump float;
 #endif
-*/
 
 uniform float time;
+#define iTime time
 #if environment == 1
 out vec4 FragColor;
 in vec2 fragCoord;
@@ -51,8 +42,8 @@ uniform float p_factor;
 float p_factor = 0.5;
 #endif
 
-// HERE
-
+// RENDER STARTS HERE
+// RENDER ENDS HERE
 void main(void) {
 #if environment != 0
     vec2 p = fragCoord.xy * p_factor;
