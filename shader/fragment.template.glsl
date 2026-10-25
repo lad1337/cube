@@ -11,7 +11,10 @@ precision mediump float;
 #endif
 
 uniform float time;
+// shadertoy compatibility
 #define iTime time
+#define iResolution resolution
+
 #if environment == 1
 out vec4 FragColor;
 in vec2 fragCoord;
@@ -19,6 +22,7 @@ in vec2 fragCoord;
 uniform vec2 resolution;
 #else
 varying vec2 fragCoord;
+uniform vec3 resolution;
 #endif
 
 #if environment > 0

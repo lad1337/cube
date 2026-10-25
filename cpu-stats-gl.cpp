@@ -42,7 +42,7 @@
 // Animation speed: how fast are received values are changing values passed to
 // the shader.
 // set to 0 to disable
-#define ANIMSTEP 0.010f
+#define ANIMSTEP 0.001f
 
 // Resolution, three panels with 64x64 each.
 #define W 192

@@ -1,4 +1,3 @@
-
 float random(in vec2 point) {
     return fract(100.0 * sin(point.x + fract(100.0 * sin(point.y))));  // http://www.matteo-basei.it/noise
 }
@@ -55,14 +54,16 @@ vec3 palette(in float t) {
     vec3 a = vec3(.0, .0, .0);
     vec3 b = vec3(2, 1.0, 1.0);
     vec3 c = vec3(1.0, .5, 1.);
-    vec3 d = vec3(0.1, 0.0, 0.3);
-    a.r = clamp(0., 6., 1.);
-    c.b = clamp(1. - load * 2., 0., 1. - upload);
+    vec3 d = vec3(0.1, 0.0, 0.3 + upload * 0.95);
+	
+    a.r = clamp(sin(time), 0., .5);
+    c.b = clamp(1. - load * 2., 1., 1.);
     d.g = clamp(download * .5, 0., 1.);
 
     return a + b * cos(6.28318 * (c * t + d));
 }
 
+// https://gist.github.com/yiwenl/1c2ce935e66b82c7df5f
 vec3 greyscale(vec3 color, float str) {
     float g = dot(color, vec3(0.299, 0.587, 0.114));
     return mix(color, vec3(g), str);
