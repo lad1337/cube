@@ -557,7 +557,7 @@ int main(int argc, char *argv[]) {
   defaults.pwm_dither_bits =
       1; // The lower bits can be time-dithered for higher refresh rate.
   defaults.pwm_lsb_nanoseconds =
-      150; // Higher numbers provide better quality (more accurate color, less
+      130; // Higher numbers provide better quality (more accurate color, less
            // ghosting), but have a negative impact on the frame rate. Default
            // 130
   defaults.scan_mode = 1; // Scan mode: 0=progressive, 1=interlaced.
@@ -566,7 +566,9 @@ int main(int argc, char *argv[]) {
   defaults.rows = 64;
   defaults.cols = 192;
   defaults.chain_length = 1;
-  // defaults.limit_refresh_rate_hz = 90;
+  // ponytail: cap below measured dips (~85Hz), uneven refresh = flicker.
+  // avoid 100Hz: beats against 2x 50Hz mains (PSU ripple / room light) = rhythmic pulsing
+  defaults.limit_refresh_rate_hz = 90;
   defaults.parallel = 1;
   if (debug >= 3) {
     defaults.show_refresh_rate = true;
