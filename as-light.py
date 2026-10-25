@@ -21,6 +21,10 @@ class Light(Accessory):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # iOS drops accessories with an empty FirmwareRevision ("No Response")
+        self.set_info_service(
+            firmware_revision="1.0.0", manufacturer="lad1337", model="Cube", serial_number="CUBE0001"
+        )
 
         serv_light = self.add_preload_service("Lightbulb", ["Brightness"])
         self.char_on = serv_light.configure_char("On", setter_callback=self.set_bulb)
