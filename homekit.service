@@ -1,0 +1,17 @@
+[Unit]
+Description=homekit integration to the cube
+After=network-online.target
+Wants=network-online.target
+# ponytail: HAP binds to whatever IP exists at start; wait for DHCP so it is not 169.254.x
+
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c "until ip -4 route | grep -q ^default; do sleep 1; done"
+ExecStart=/usr/bin/as-light.py
+User=root
+WorkingDirectory=/etc/cube
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
