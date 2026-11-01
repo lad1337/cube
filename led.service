@@ -8,7 +8,6 @@ ExecStart=/usr/bin/cpu-stats-gl -v --render shader/render.smoke2.glsl
 User=root
 WorkingDirectory=/etc/cube
 Restart=always
-RuntimeMaxSec=9h
 
 [Install]
 WantedBy=multi-user.target
