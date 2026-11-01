@@ -76,8 +76,9 @@ using rgb_matrix::RGBMatrix;
 
 using namespace rgb_matrix;
 
-float t = 0.f;
-float updateTime = -10.0f;
+// double: float t += 0.01f loses steps as t grows (~2% at 9h, frozen at ~40 days)
+double t = 0.0;
+double updateTime = -10.0;
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) { interrupt_received = true; }
@@ -262,12 +263,14 @@ void receiveUDP() {
     }
 
     if (bind(s, (struct sockaddr *)&si_me, sizeof(si_me)) == -1) {
+      close(s);
       usleep(500000);
       printf("Error binding socket.\n");
       continue;
     }
 
     if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+      close(s);
       usleep(500000);
       printf("Error setting socket timeout.\n");
       continue;
