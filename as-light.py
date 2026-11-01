@@ -26,13 +26,15 @@ class Light(Accessory):
             firmware_revision="1.0.0", manufacturer="lad1337", model="Cube", serial_number="CUBE0001"
         )
 
-        serv_light = self.add_preload_service("Lightbulb", ["Brightness"])
-        self.char_on = serv_light.configure_char("On", setter_callback=self.set_bulb)
-        self.char_brightness = serv_light.configure_char(
-            "Brightness", setter_callback=self.set_brightness
-        )
         self.brightness = 100
         self.on = True
+        serv_light = self.add_preload_service("Lightbulb", ["Brightness"])
+        self.char_on = serv_light.configure_char(
+            "On", value=self.on, setter_callback=self.set_bulb
+        )
+        self.char_brightness = serv_light.configure_char(
+            "Brightness", value=self.brightness, setter_callback=self.set_brightness
+        )
 
     def set_bulb(self, value):
         logging.info("Bulb on value: %s", value)
@@ -58,6 +60,10 @@ def get_bridge(driver):
 
 
 driver = AccessoryDriver(port=51826, persist_file="./cube.state")
-driver.add_accessory(accessory=Light(driver, "Cube"))
+light = Light(driver, "Cube")
+driver.add_accessory(accessory=light)
 signal.signal(signal.SIGTERM, driver.signal_handler)
+# ponytail: state lives in RAM (no SD writes); led.service sends USR1 after (re)start
+# so led gets it back. lost on reboot / homekit restart -> on, 100%
+signal.signal(signal.SIGUSR1, lambda *_: light.notify())
 driver.start()

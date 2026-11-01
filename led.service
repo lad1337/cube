@@ -5,6 +5,8 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/cpu-stats-gl -v --render shader/render.smoke2.glsl
+# give the UDP listener time to bind, then have homekit resend on/brightness
+ExecStartPost=-/bin/sh -c "sleep 5; systemctl kill -s USR1 homekit"
 User=root
 WorkingDirectory=/etc/cube
 Restart=always
