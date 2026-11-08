@@ -604,8 +604,6 @@ int main(int argc, char *argv[]) {
   float effective_upload = 0.0f;
   printf("Rendering!\n");
   while (!interrupt_received) {
-    t += 0.01f;
-
     if (print) {
       printf("\033c");
       sleep(1);
@@ -667,6 +665,9 @@ int main(int argc, char *argv[]) {
     if (!last_frame_on)
       matrix->StartRefresh();
     last_frame_on = true;
+    // only advance on rendered frames: the off loop spins ~1000/s and would blow
+    // t up past float precision (shader time then stutters)
+    t += 0.01f;
 
     // Grab the interval since last update
     int quiet = int(t - updateTime);
